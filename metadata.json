@@ -1,0 +1,8 @@
+{
+  "name": "NomadSense",
+  "description": "An AI-powered cultural explorer that uses Gemini and Google Maps to reveal famous places, traditions, festivals, and activities for any location.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": []
+}
