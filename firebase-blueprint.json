@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile data including contact and location info.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "email": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "city": { "type": "string" },
+        "country": { "type": "string" },
+        "additionalInfo": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "username": { "type": "string" }
+      },
+      "required": ["userId", "email", "firstName", "lastName"]
+    },
+    "Trip": {
+      "title": "Trip Plan",
+      "description": "A saved trip plan for a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "destination": { "type": "string" },
+        "startDate": { "type": "string", "format": "date" },
+        "endDate": { "type": "string", "format": "date" },
+        "days": { "type": "number" },
+        "budget": { "type": "number" },
+        "peopleCount": { "type": "number" },
+        "transportMode": { "type": "string" },
+        "checklist": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "task": { "type": "string" },
+              "completed": { "type": "boolean" }
+            }
+          }
+        },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "destination", "days", "budget", "startDate", "endDate"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Individual user profiles."
+    },
+    "users/{userId}/trips/{tripId}": {
+      "schema": "Trip",
+      "description": "Subcollection of trip plans for a user."
+    }
+  }
+}

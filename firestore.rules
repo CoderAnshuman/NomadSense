@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['userId', 'email', 'firstName', 'lastName']) &&
+             data.userId == request.auth.uid &&
+             data.email is string && data.email.size() <= 256 &&
+             data.firstName is string && data.firstName.size() <= 100 &&
+             data.lastName is string && data.lastName.size() <= 100 &&
+             (!('phoneNumber' in data) || (data.phoneNumber is string && data.phoneNumber.size() <= 20)) &&
+             (!('city' in data) || (data.city is string && data.city.size() <= 100)) &&
+             (!('country' in data) || (data.country is string && data.country.size() <= 100)) &&
+             (!('additionalInfo' in data) || (data.additionalInfo is string && data.additionalInfo.size() <= 2000)) &&
+             (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 500)) &&
+             (!('username' in data) || (data.username is string && data.username.size() <= 50));
+    }
+
+    function isValidTrip(data) {
+      return data.keys().hasAll(['userId', 'destination', 'days', 'budget']) &&
+             data.userId == request.auth.uid &&
+             data.destination is string && data.destination.size() <= 200 &&
+             data.days is number && data.days > 0 &&
+             data.budget is number && data.budget >= 0 &&
+             (!('peopleCount' in data) || (data.peopleCount is number && data.peopleCount > 0)) &&
+             (!('transportMode' in data) || (data.transportMode is string && data.transportMode.size() <= 50)) &&
+             (!('createdAt' in data) || (data.createdAt is timestamp));
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming()) && 
+                    incoming().userId == existing().userId &&
+                    incoming().email == existing().email;
+      
+      match /trips/{tripId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidTrip(incoming());
+        allow update, delete: if isOwner(userId);
+      }
+    }
+  }
+}

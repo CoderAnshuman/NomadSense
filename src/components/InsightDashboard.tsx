@@ -11,28 +11,124 @@ import {
   Utensils, 
   Coffee, 
   BookOpen, 
-  Layers 
+  Layers,
+  Loader2,
+  CheckCircle,
+  Plus,
+  CheckSquare,
+  PenTool,
+  Save,
+  Trash2
 } from "lucide-react";
-import { LocationInsight } from "../types";
+import { UserProfile, LocationInsight, UserTrip } from '../types';
 import { InteractiveMap } from "./InteractiveMap";
 import { ItinerarySection } from "./ItinerarySection";
 import { CuisineSection } from "./CuisineSection";
 import { EtiquetteSection } from "./EtiquetteSection";
 import { TravelTipsSection } from "./TravelTipsSection";
 
+import { db } from '../services/firebase';
+import { collection, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
+
 interface InsightDashboardProps {
   insight: LocationInsight;
+  user: UserProfile | null;
+  trip?: UserTrip;
   onBack: () => void;
+  onPlanTrip: () => void;
+  onLoginRequired: () => void;
+  onUpdateTrip?: (trip: UserTrip) => void;
 }
 
-type Tab = "overview" | "plan" | "taste" | "guide";
+type Tab = "overview" | "plan" | "taste" | "guide" | "checklist" | "journal";
 
-export function InsightDashboard({ insight, onBack }: InsightDashboardProps) {
+export function InsightDashboard({ insight, user, trip, onBack, onPlanTrip, onLoginRequired, onUpdateTrip }: InsightDashboardProps) {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success'>('idle');
+  
+  // Checklist and Notes state
+  const [checklist, setChecklist] = useState<{id: string, task: string, completed: boolean}[]>(trip?.checklist || []);
+  const [notes, setNotes] = useState(trip?.notes || "");
+  const [newItem, setNewItem] = useState("");
+
+  const handleSaveToProfile = async () => {
+    if (!user) {
+      onLoginRequired();
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const now = new Date();
+      const startDate = now.toISOString().split('T')[0];
+      const endDate = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      await addDoc(collection(db, 'users', user.userId, 'trips'), {
+        destination: insight.name,
+        startDate,
+        endDate,
+        days: 3,
+        budget: 1000,
+        peopleCount: 1,
+        transportMode: 'Flight',
+        insight: insight,
+        userId: user.userId,
+        createdAt: serverTimestamp(),
+      });
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } catch (err) {
+      console.error("Save error:", err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdateTrip = async () => {
+    if (!user || !trip) return;
+    setIsSaving(true);
+    try {
+      const tripRef = doc(db, 'users', user.userId, 'trips', trip.id);
+      await updateDoc(tripRef, {
+        checklist,
+        notes,
+        updatedAt: serverTimestamp()
+      });
+      if (onUpdateTrip) {
+        onUpdateTrip({ ...trip, checklist, notes });
+      }
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } catch (err) {
+      console.error("Update error:", err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const addChecklistItem = () => {
+    if (!newItem.trim()) return;
+    const item = { id: Math.random().toString(36).substr(2, 9), task: newItem, completed: false };
+    setChecklist([...checklist, item]);
+    setNewItem("");
+  };
+
+  const toggleChecklistItem = (id: string) => {
+    setChecklist(checklist.map(item => item.id === id ? { ...item, completed: !item.completed } : item));
+  };
+
+  const removeChecklistItem = (id: string) => {
+    setChecklist(checklist.filter(item => item.id !== id));
+  };
 
   const tabs = [
     { id: "overview", label: "Overview", icon: Layers },
     { id: "plan", label: "Plan", icon: Calendar },
+    ...(trip ? [
+      { id: "checklist", label: "Checklist", icon: CheckSquare },
+      { id: "journal", label: "Journal", icon: PenTool },
+    ] : []),
     { id: "taste", label: "Taste", icon: Coffee },
     { id: "guide", label: "Guide", icon: BookOpen },
   ] as const;
@@ -106,9 +202,29 @@ export function InsightDashboard({ insight, onBack }: InsightDashboardProps) {
                 <h2 className="text-7xl md:text-8xl font-serif mb-8 leading-none tracking-tighter">
                   {insight.name}
                 </h2>
-                <p className="text-xl md:text-2xl text-white/50 font-light max-w-4xl leading-relaxed">
-                  {insight.description}
-                </p>
+                <div className="flex flex-col md:flex-row md:items-center gap-8">
+                  <p className="text-xl md:text-2xl text-white/50 font-light max-w-2xl leading-relaxed">
+                    {insight.description}
+                  </p>
+                  <button 
+                    onClick={onPlanTrip}
+                    className="bg-brand-gold text-brand-dark px-10 py-4 rounded-full font-bold uppercase tracking-[0.2em] shadow-xl shadow-brand-gold/10 hover:brightness-110 active:scale-95 transition-all whitespace-nowrap"
+                  >
+                    Custom Plan
+                  </button>
+                  <button 
+                    onClick={handleSaveToProfile}
+                    disabled={isSaving || saveStatus === 'success'}
+                    className={`px-10 py-4 rounded-full font-bold uppercase tracking-[0.2em] border transition-all whitespace-nowrap flex items-center justify-center gap-2 ${
+                      saveStatus === 'success' 
+                        ? 'bg-green-500/10 border-green-500 text-green-500' 
+                        : 'border-white/20 hover:border-brand-gold hover:text-brand-gold text-white/60'
+                    }`}
+                  >
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : saveStatus === 'success' ? <CheckCircle className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                    {saveStatus === 'success' ? 'Saved' : 'Save to Profile'}
+                  </button>
+                </div>
               </header>
 
               {/* Culture section */}
@@ -249,8 +365,135 @@ export function InsightDashboard({ insight, onBack }: InsightDashboardProps) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
+              className="space-y-24"
             >
+              {trip && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="luxury-card p-10 text-center">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 mb-2">Planned Budget</p>
+                    <p className="text-4xl font-serif text-brand-gold">${trip.budget}</p>
+                  </div>
+                  <div className="luxury-card p-10 text-center">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 mb-2">Duration</p>
+                    <p className="text-4xl font-serif text-brand-gold">{trip.days} Days</p>
+                  </div>
+                  <div className="luxury-card p-10 text-center">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 mb-2">Itinerary Cost</p>
+                    <p className="text-4xl font-serif text-brand-gold">
+                      ${insight.itinerary.reduce((total, day) => total + day.items.reduce((dayTotal, item) => dayTotal + (item.estimatedCost || 0), 0), 0)}
+                    </p>
+                  </div>
+                </div>
+              )}
               <ItinerarySection itinerary={insight.itinerary} />
+            </motion.div>
+          )}
+
+          {activeTab === "checklist" && trip && (
+            <motion.div
+              key="checklist"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="max-w-3xl mx-auto space-y-12"
+            >
+              <div className="text-center">
+                <h3 className="text-5xl font-serif italic mb-4">Travel Checklist</h3>
+                <p className="text-white/40">Keep track of your essentials and preparations.</p>
+              </div>
+
+              <div className="luxury-card p-10 space-y-8">
+                <div className="flex gap-4">
+                  <input 
+                    type="text"
+                    value={newItem}
+                    onChange={(e) => setNewItem(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && addChecklistItem()}
+                    placeholder="Add an item (e.g., Pack passport, Buy insurance)"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-full py-4 px-8 focus:ring-1 focus:ring-brand-gold outline-none transition-all"
+                  />
+                  <button 
+                    onClick={addChecklistItem}
+                    className="bg-brand-gold text-brand-dark px-8 rounded-full font-bold uppercase text-xs tracking-widest hover:brightness-110 active:scale-95 transition-all"
+                  >
+                    Add
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {checklist.length > 0 ? (
+                    checklist.map((item) => (
+                      <div key={item.id} className="flex items-center gap-4 group p-4 border border-white/5 rounded-2xl hover:bg-white/5 transition-all">
+                        <button 
+                          onClick={() => toggleChecklistItem(item.id)}
+                          className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all ${
+                            item.completed ? 'bg-brand-gold border-brand-gold text-brand-dark' : 'border-white/20 text-transparent'
+                          }`}
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                        </button>
+                        <span className={`flex-1 ${item.completed ? 'text-white/20 line-through' : 'text-white'}`}>
+                          {item.task}
+                        </span>
+                        <button 
+                          onClick={() => removeChecklistItem(item.id)}
+                          className="text-white/10 hover:text-red-400 p-2 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-20 text-white/20 italic">No items in your checklist. Start by adding one above.</div>
+                  )}
+                </div>
+
+                <div className="pt-8 border-t border-white/5 flex justify-end">
+                  <button 
+                    onClick={handleUpdateTrip}
+                    disabled={isSaving}
+                    className="bg-brand-gold text-brand-dark px-10 py-4 rounded-full font-bold uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all"
+                  >
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === "journal" && trip && (
+            <motion.div
+              key="journal"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="max-w-4xl mx-auto space-y-12"
+            >
+              <div className="text-center">
+                <h3 className="text-5xl font-serif italic mb-4">Travel Journal</h3>
+                <p className="text-white/40">Log your thoughts, hidden gems, and reflections here.</p>
+              </div>
+
+              <div className="luxury-card p-12 space-y-8">
+                <textarea 
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Capture your memories..."
+                  className="w-full min-h-[500px] bg-transparent border-none text-xl leading-relaxed text-white/80 focus:ring-0 resize-none font-serif placeholder:text-white/10"
+                />
+                
+                <div className="pt-8 border-t border-white/5 flex justify-end">
+                  <button 
+                    onClick={handleUpdateTrip}
+                    disabled={isSaving}
+                    className="bg-brand-gold text-brand-dark px-10 py-4 rounded-full font-bold uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all"
+                  >
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Save Journal
+                  </button>
+                </div>
+              </div>
             </motion.div>
           )}
 

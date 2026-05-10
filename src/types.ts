@@ -32,6 +32,7 @@ export interface LocationInsight {
       time: string;
       activity: string;
       location: string;
+      estimatedCost: number;
     }[];
   }[];
   cuisine: {
@@ -51,9 +52,41 @@ export interface LocationInsight {
   }[];
 }
 
+export interface UserProfile {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string;
+  city?: string;
+  country?: string;
+  additionalInfo?: string;
+  photoUrl?: string;
+  username?: string;
+}
+
+export interface UserTrip {
+  id: string;
+  userId: string;
+  destination: string;
+  startDate: string; // ISO string
+  endDate: string; // ISO string
+  days: number;
+  budget: number;
+  peopleCount?: number;
+  transportMode?: string;
+  checklist?: { id: string; task: string; completed: boolean }[];
+  notes?: string;
+  insight?: LocationInsight;
+  createdAt: any;
+}
+
 export interface AppState {
   searchQuery: string;
   locationInsight: LocationInsight | null;
+  activeTrip: UserTrip | null;
   isLoading: boolean;
   error: string | null;
+  user: UserProfile | null;
+  authLoading: boolean;
 }
