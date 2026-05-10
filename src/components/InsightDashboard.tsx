@@ -48,9 +48,16 @@ export function InsightDashboard({ insight, user, trip, onBack, onPlanTrip, onLo
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success'>('idle');
   
   // Checklist and Notes state
-  const [checklist, setChecklist] = useState<{id: string, task: string, completed: boolean}[]>(trip?.checklist || []);
-  const [notes, setNotes] = useState(trip?.notes || "");
+  const [checklist, setChecklist] = useState<{id: string, task: string, completed: boolean}[]>(
+    Array.isArray(trip?.checklist) ? trip.checklist : []
+  );
+  const [allNotes, setAllNotes] = useState<{ id: string; title: string; content: string; date: string }[]>(
+    Array.isArray(trip?.notes) ? trip.notes : []
+  );
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [newItem, setNewItem] = useState("");
+
+  const activeNote = allNotes.find(n => n.id === activeNoteId);
 
   const handleSaveToProfile = async () => {
     if (!user) {
@@ -92,11 +99,11 @@ export function InsightDashboard({ insight, user, trip, onBack, onPlanTrip, onLo
       const tripRef = doc(db, 'users', user.userId, 'trips', trip.id);
       await updateDoc(tripRef, {
         checklist,
-        notes,
+        notes: allNotes,
         updatedAt: serverTimestamp()
       });
       if (onUpdateTrip) {
-        onUpdateTrip({ ...trip, checklist, notes });
+        onUpdateTrip({ ...trip, checklist, notes: allNotes });
       }
       setSaveStatus('success');
       setTimeout(() => setSaveStatus('idle'), 3000);
@@ -105,6 +112,26 @@ export function InsightDashboard({ insight, user, trip, onBack, onPlanTrip, onLo
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const createNewNote = () => {
+    const newNote = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: "Untethered thoughts...",
+      content: "",
+      date: new Date().toLocaleDateString()
+    };
+    setAllNotes([newNote, ...allNotes]);
+    setActiveNoteId(newNote.id);
+  };
+
+  const updateActiveNote = (updates: Partial<{ title: string, content: string }>) => {
+    setAllNotes(allNotes.map(n => n.id === activeNoteId ? { ...n, ...updates } : n));
+  };
+
+  const deleteNote = (id: string) => {
+    setAllNotes(allNotes.filter(n => n.id !== id));
+    if (activeNoteId === id) setActiveNoteId(null);
   };
 
   const addChecklistItem = () => {
@@ -371,7 +398,7 @@ export function InsightDashboard({ insight, user, trip, onBack, onPlanTrip, onLo
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div className="luxury-card p-10 text-center">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 mb-2">Planned Budget</p>
-                    <p className="text-4xl font-serif text-brand-gold">${trip.budget}</p>
+                    <p className="text-4xl font-serif text-brand-gold">₹{trip.budget}</p>
                   </div>
                   <div className="luxury-card p-10 text-center">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 mb-2">Duration</p>
@@ -380,7 +407,7 @@ export function InsightDashboard({ insight, user, trip, onBack, onPlanTrip, onLo
                   <div className="luxury-card p-10 text-center">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 mb-2">Itinerary Cost</p>
                     <p className="text-4xl font-serif text-brand-gold">
-                      ${insight.itinerary.reduce((total, day) => total + day.items.reduce((dayTotal, item) => dayTotal + (item.estimatedCost || 0), 0), 0)}
+                      ₹{insight.itinerary.reduce((total, day) => total + day.items.reduce((dayTotal, item) => dayTotal + (item.estimatedCost || 0), 0), 0)}
                     </p>
                   </div>
                 </div>
@@ -468,30 +495,104 @@ export function InsightDashboard({ insight, user, trip, onBack, onPlanTrip, onLo
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="max-w-4xl mx-auto space-y-12"
+              className="max-w-6xl mx-auto space-y-12"
             >
               <div className="text-center">
                 <h3 className="text-5xl font-serif italic mb-4">Travel Journal</h3>
                 <p className="text-white/40">Log your thoughts, hidden gems, and reflections here.</p>
               </div>
 
-              <div className="luxury-card p-12 space-y-8">
-                <textarea 
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Capture your memories..."
-                  className="w-full min-h-[500px] bg-transparent border-none text-xl leading-relaxed text-white/80 focus:ring-0 resize-none font-serif placeholder:text-white/10"
-                />
-                
-                <div className="pt-8 border-t border-white/5 flex justify-end">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-[600px]">
+                {/* Notes List */}
+                <div className="lg:col-span-4 luxury-card p-6 space-y-4 overflow-y-auto max-h-[600px]">
                   <button 
-                    onClick={handleUpdateTrip}
-                    disabled={isSaving}
-                    className="bg-brand-gold text-brand-dark px-10 py-4 rounded-full font-bold uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all"
+                    onClick={createNewNote}
+                    className="w-full bg-brand-gold/10 border border-brand-gold/20 text-brand-gold py-4 rounded-2xl font-bold uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-brand-gold/20 transition-all"
                   >
-                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    Save Journal
+                    <Plus className="w-4 h-4" />
+                    New Entry
                   </button>
+                  
+                  <div className="space-y-3">
+                    {allNotes.length > 0 ? (
+                      allNotes.map((note) => (
+                        <div 
+                          key={note.id}
+                          onClick={() => setActiveNoteId(note.id)}
+                          className={`p-5 rounded-2xl border transition-all cursor-pointer group relative ${
+                            activeNoteId === note.id 
+                              ? 'bg-brand-gold border-brand-gold text-brand-dark' 
+                              : 'bg-white/5 border-white/10 hover:border-brand-gold/40'
+                          }`}
+                        >
+                          <h4 className="font-serif text-lg mb-1 truncate pr-8">{note.title || "Untitled Entry"}</h4>
+                          <div className={`text-[9px] uppercase tracking-widest ${activeNoteId === note.id ? 'text-brand-dark/60' : 'text-white/30'}`}>
+                            {note.date}
+                          </div>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
+                            className={`absolute right-4 top-1/2 -translate-y-1/2 transition-opacity ${
+                              activeNoteId === note.id ? 'text-brand-dark/40 hover:text-brand-dark' : 'text-white/10 hover:text-red-400'
+                            }`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-20 text-white/10 italic">No entries yet.</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Note Editor */}
+                <div className="lg:col-span-8 luxury-card p-0 flex flex-col relative overflow-hidden">
+                  {activeNote ? (
+                    <div className="flex flex-col h-full">
+                      <div className="p-8 border-b border-white/5">
+                        <input 
+                          type="text"
+                          value={activeNote.title}
+                          onChange={(e) => updateActiveNote({ title: e.target.value })}
+                          className="w-full bg-transparent border-none text-3xl font-serif focus:ring-0 placeholder:text-white/10"
+                          placeholder="Entry Title..."
+                        />
+                      </div>
+                      <textarea 
+                        value={activeNote.content}
+                        onChange={(e) => updateActiveNote({ content: e.target.value })}
+                        placeholder="Start writing..."
+                        className="flex-1 w-full p-8 bg-transparent border-none text-lg leading-relaxed text-white/80 focus:ring-0 resize-none font-sans placeholder:text-white/10 min-h-[400px]"
+                      />
+                      <div className="p-8 border-t border-white/5 flex justify-between items-center">
+                        <div className="text-[10px] text-white/20 uppercase tracking-widest">Last modified: {activeNote.date}</div>
+                        <button 
+                          onClick={handleUpdateTrip}
+                          disabled={isSaving}
+                          className="bg-brand-gold text-brand-dark px-10 py-4 rounded-full font-bold uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all"
+                        >
+                          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                          Save Journal
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center p-20 text-center space-y-6">
+                      <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center text-white/10">
+                        <PenTool className="w-10 h-10" />
+                      </div>
+                      <div className="space-y-2">
+                        <h4 className="text-2xl font-serif italic text-white/40">Select an entry to read or write</h4>
+                        <p className="text-white/20 max-w-xs mx-auto text-sm leading-relaxed">Capture the essence of your journey through words. Every story deserves its space.</p>
+                      </div>
+                      <button 
+                        onClick={createNewNote}
+                        className="bg-white/5 border border-white/10 text-white hover:bg-white/10 px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all"
+                      >
+                        Create New Entry
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>

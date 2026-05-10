@@ -76,7 +76,7 @@ export interface UserTrip {
   peopleCount?: number;
   transportMode?: string;
   checklist?: { id: string; task: string; completed: boolean }[];
-  notes?: string;
+  notes?: { id: string; title: string; content: string; date: string }[];
   insight?: LocationInsight;
   createdAt: any;
 }

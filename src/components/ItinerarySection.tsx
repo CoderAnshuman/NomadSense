@@ -39,7 +39,7 @@ export function ItinerarySection({ itinerary }: { itinerary: LocationInsight['it
                   <div className="flex-1">
                     <div className="flex justify-between items-start mb-1">
                       <h5 className="text-xl font-medium">{item.activity}</h5>
-                      <div className="text-brand-gold font-mono text-sm">${item.estimatedCost}</div>
+                      <div className="text-brand-gold font-mono text-sm">₹{item.estimatedCost}</div>
                     </div>
                     <div className="flex items-center gap-2 text-white/40 text-sm">
                       <MapPin className="w-3 h-3" />

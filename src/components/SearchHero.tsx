@@ -33,7 +33,7 @@ export function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
           AI-Powered Cultural Explorer
         </div>
         
-        <h1 className="text-6xl md:text-8xl font-serif mb-6 tracking-tight leading-tight">
+        <h1 className="text-4xl md:text-6xl font-serif mb-6 tracking-tight leading-tight">
           Unveil the soul of <span className="italic gold-text">every place</span>.
         </h1>
         

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Compass, MapPin, Calendar, DollarSign, Users, Plane, Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Compass, MapPin, Calendar, IndianRupee, Users, Plane, Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
 import { db } from '../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { UserProfile } from '../types';
@@ -154,9 +154,9 @@ export function TripPlanner({ user, initialDestination = '', onBack, onSuccess }
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-[0.3em] text-brand-gold/60 font-bold ml-6">Budget ($)</label>
+                <label className="text-[10px] uppercase tracking-[0.3em] text-brand-gold/60 font-bold ml-6">Budget (₹)</label>
                 <div className="relative">
-                  <DollarSign className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20" />
+                  <IndianRupee className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20" />
                   <input 
                     type="number"
                     value={formData.budget}

@@ -183,7 +183,7 @@ export function Profile({ user, onLogout, onPlanTrip, onViewTrip }: ProfileProps
                       </div>
                       <div className="flex items-center justify-between pt-6 border-t border-white/5">
                         <span className="text-xs uppercase tracking-widest text-white/20">Budget</span>
-                        <span className="text-brand-gold font-serif text-xl">${trip.budget}</span>
+                        <span className="text-brand-gold font-serif text-xl">₹{trip.budget}</span>
                       </div>
                     </div>
                   </motion.div>

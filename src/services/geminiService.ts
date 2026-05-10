@@ -15,7 +15,7 @@ export async function getLocationInsight(locationName: string): Promise<Location
   - Famous places with exact latitude/longitude.
   - Deep cultural summary and facts.
   - Traditional festivals and their timings.
-  - A comprehensive 3-day itinerary.
+  - A comprehensive 3-day itinerary with estimated costs in INR (₹).
   - Local cuisine details.
   - Essential etiquette and travel tips.
   
@@ -178,12 +178,12 @@ export async function generatePersonalizedTripPlan(
   const prompt = `Create a highly personalized travel plan for ${locationName}. 
   User Constraints:
   - Duration: ${days} days
-  - Total Budget: $${budget} USD
+  - Total Budget: ₹${budget} INR
   - Travelers: ${peopleCount} people
   - Preferred Transport: ${transportMode}
   
   The itinerary must be realistic for this budget. 
-  Each itinerary item MUST include an 'estimatedCost' in USD.
+  Each itinerary item MUST include an 'estimatedCost' in INR.
   If the budget is low, suggest more free activities and budget-friendly street food.
   If the budget is high, suggest luxury landmarks and fine dining.
   
