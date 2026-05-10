@@ -1,4 +1,4 @@
-# Cultural Explorer AI 🌍✨
+# Nomad Sense 🌍✨
 
 An AI-powered travel companion that helps you unveil the culture of any destination and plan perfect, budget-aware journeys.
 
