@@ -24,14 +24,15 @@ export default function App() {
     try {
       const insight = await getLocationInsight(query);
       setState(prev => ({ ...prev, locationInsight: insight, isLoading: false }));
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       setState(prev => ({ 
         ...prev, 
         isLoading: false, 
-        error: "Failed to explore this place. Please try a different location or check your configuration." 
+        error: err.message || "Failed to explore this place. Please try a different location or check your configuration." 
       }));
     }
+
   };
 
   const handleReset = () => {
