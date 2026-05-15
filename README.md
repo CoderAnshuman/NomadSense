@@ -9,7 +9,7 @@ An AI-powered travel companion that helps you unveil the culture of any destinat
 - **Trip Status Gallery:** Organize your travels into *Upcoming*, *Ongoing*, and *Completed* tabs for easy management.
 - **Multi-Entry Travel Journal:** Capture your memories with a built-in diary supporting multiple entries per trip.
 - **Smart Checklist:** Never forget the essentials with a persistent packing and preparation checklist.
-- **Luxury UI:** A bespoke, dark-themed interface designed with typography and fluid animations for a premium feel.
+- **Luxury UI:** A bespoke, dark-themed interface designed with typography and fluid animations for a premium feel..
 
 ## 🛠️ Tech Stack
 
